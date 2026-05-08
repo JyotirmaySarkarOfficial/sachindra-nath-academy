@@ -7,7 +7,7 @@ const founderMessage = {
   role: 'Founder',
 
   message: `
-    Welcome to Sachindra Nath Academy.
+    Welcome to Sachindra Nath Academy. My name is Amal Kumar Sarkar
 
     Our mission is to provide quality education, strong moral values and holistic development to every student. We believe education is not only about academic success but also about discipline, character and responsibility.
 
