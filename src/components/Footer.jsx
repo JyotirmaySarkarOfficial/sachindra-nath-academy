@@ -155,6 +155,21 @@ function Footer() {
 
       </div>
 
+      {/* Sudoku Button */}
+
+      <div className="flex justify-center mt-14 px-6">
+
+        <a
+          href="/sudoku"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-yellow-400 text-blue-950 px-10 py-4 rounded-full font-bold text-lg hover:scale-105 hover:bg-white transition duration-300 shadow-2xl"
+        >
+          🎮 Let’s Play Sudoku
+        </a>
+
+      </div>
+
       {/* Bottom */}
       <div className="border-t border-gray-700 mt-12 pt-6 text-center text-gray-400">
 
