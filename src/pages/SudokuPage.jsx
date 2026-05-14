@@ -542,7 +542,7 @@ function SudokuPage() {
                     type="text"
                     readOnly
                     value={cell}
-                    disabled={isFixed}
+                    
 
                     onClick={() => {
 
@@ -636,6 +636,15 @@ function SudokuPage() {
                 onClick={() => {
 
                   if (!selectedCell) return
+
+                  const isFixed =
+                    levelData.puzzle[
+                      selectedCell.row
+                    ][
+                      selectedCell.col
+                    ] !== ''
+
+                  if (isFixed) return
 
                   const updatedBoard = [...board]
 
