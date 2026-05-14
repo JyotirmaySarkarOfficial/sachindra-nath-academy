@@ -44,6 +44,15 @@ function SudokuPage() {
   const [showConfetti, setShowConfetti] =
     useState(false)
 
+  const [showWinCard, setShowWinCard] =
+    useState(false)
+
+  const [bestTime, setBestTime] =
+    useState(null)
+
+  const [mistakes, setMistakes] =
+    useState(0)
+
   /* =========================================
      CURRENT LEVEL
   ========================================= */
@@ -83,6 +92,21 @@ function SudokuPage() {
       setSelectedCell(null)
 
       setSeconds(0)
+
+      setMistakes(0)
+
+      const savedBest = localStorage.getItem(
+        `bestTime-level-${currentLevel}`
+      )
+
+      if (savedBest) {
+
+        setBestTime(Number(savedBest))
+
+      } else {
+
+        setBestTime(null)
+      }
     }
 
   }, [currentLevel])
@@ -132,16 +156,28 @@ function SudokuPage() {
     value
   ) => {
 
-    if (!/^([1-9]?)$/.test(value)) {
-      return
-    }
-
     const updatedBoard = [...board]
 
     updatedBoard[rowIndex][colIndex] =
-      value === '' ? '' : Number(value)
+      value
 
     setBoard(updatedBoard)
+
+    if (
+      value !==
+      levelData.solution[rowIndex][colIndex]
+    ) {
+
+      setMistakes((prev) => prev + 1)
+
+      errorAudio.currentTime = 0
+      errorAudio.play()
+
+    } else {
+
+      clickAudio.currentTime = 0
+      clickAudio.play()
+    }
   }
 
   /* =========================================
@@ -185,9 +221,24 @@ function SudokuPage() {
         JSON.stringify(updatedCompleted)
       )
 
-      alert(
-        `🎉 Congratulations!\n\nYou cleared Level ${currentLevel}\n\nTime: ${formatTime(seconds)}`
+      const savedBest = localStorage.getItem(
+        `bestTime-level-${currentLevel}`
       )
+
+      if (
+        !savedBest ||
+        seconds < Number(savedBest)
+      ) {
+
+        localStorage.setItem(
+          `bestTime-level-${currentLevel}`,
+          seconds
+        )
+
+        setBestTime(seconds)
+      }
+
+      setShowWinCard(true)
 
     } else {
 
@@ -199,12 +250,107 @@ function SudokuPage() {
     }
   }
 
+  /* =========================================
+     HINT SYSTEM
+  ========================================= */
+
+  const giveHint = () => {
+
+    const emptyCells = []
+
+    board.forEach((row, rowIndex) => {
+
+      row.forEach((cell, colIndex) => {
+
+        if (cell === '') {
+
+          emptyCells.push({
+            row: rowIndex,
+            col: colIndex,
+          })
+        }
+
+      })
+
+    })
+
+    if (emptyCells.length === 0) return
+
+    const randomCell =
+      emptyCells[
+        Math.floor(
+          Math.random() *
+            emptyCells.length
+        )
+      ]
+
+    const updatedBoard = [...board]
+
+    updatedBoard[randomCell.row][
+      randomCell.col
+    ] =
+      levelData.solution[randomCell.row][
+        randomCell.col
+      ]
+
+    setBoard(updatedBoard)
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-16 px-4">
 
       {/* CONFETTI */}
 
       {showConfetti && <Confetti />}
+
+      {/* WIN CARD */}
+
+      {showWinCard && (
+
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6">
+
+          <motion.div
+            initial={{
+              scale: 0.7,
+              opacity: 0,
+            }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+            }}
+            className="bg-white rounded-3xl p-10 max-w-md w-full text-center shadow-2xl"
+          >
+
+            <h2 className="text-4xl font-extrabold text-blue-950">
+              🎉 Level Complete!
+            </h2>
+
+            <p className="mt-6 text-xl text-gray-700">
+              You solved Level {currentLevel}
+            </p>
+
+            <p className="mt-3 text-lg text-yellow-500 font-bold">
+              Time: {formatTime(seconds)}
+            </p>
+
+            <p className="mt-3 text-lg text-red-500 font-bold">
+              Mistakes: {mistakes}
+            </p>
+
+            <button
+              onClick={() =>
+                setShowWinCard(false)
+              }
+              className="mt-8 bg-blue-950 text-white px-8 py-4 rounded-full font-semibold hover:scale-105 transition duration-300"
+            >
+              Continue
+            </button>
+
+          </motion.div>
+
+        </div>
+
+      )}
 
       <div className="max-w-7xl mx-auto">
 
@@ -283,6 +429,38 @@ function SudokuPage() {
 
         </div>
 
+        {/* BEST TIME */}
+
+        {bestTime && (
+
+          <div className="flex justify-center mt-4">
+
+            <div className="bg-yellow-400 px-6 py-3 rounded-2xl text-lg font-bold text-blue-950 shadow-xl">
+
+              🏆 Best Time:
+              {' '}
+              {formatTime(bestTime)}
+
+            </div>
+
+          </div>
+
+        )}
+
+        {/* MISTAKES */}
+
+        <div className="flex justify-center mt-4">
+
+          <div className="bg-red-100 px-6 py-3 rounded-2xl text-lg font-bold text-red-600 shadow-xl">
+
+            ❌ Mistakes:
+            {' '}
+            {mistakes}
+
+          </div>
+
+        </div>
+
         {/* LEVELS */}
 
         <div className="mt-16">
@@ -342,7 +520,7 @@ function SudokuPage() {
                   <input
                     key={`${rowIndex}-${colIndex}`}
                     type="text"
-                    maxLength="1"
+                    readOnly
                     value={cell}
                     disabled={isFixed}
 
@@ -357,14 +535,6 @@ function SudokuPage() {
                         value: cell,
                       })
                     }}
-
-                    onChange={(e) =>
-                      handleChange(
-                        rowIndex,
-                        colIndex,
-                        e.target.value
-                      )
-                    }
 
                     className={`w-10 h-10 md:w-14 md:h-14 text-center border text-lg md:text-2xl font-bold outline-none transition duration-200
 
@@ -434,6 +604,47 @@ function SudokuPage() {
 
         </div>
 
+        {/* NUMBER PAD */}
+
+        <div className="flex flex-wrap justify-center gap-3 mt-10">
+
+          {[1,2,3,4,5,6,7,8,9].map(
+            (number) => (
+
+              <button
+                key={number}
+                onClick={() => {
+
+                  if (!selectedCell) return
+
+                  const updatedBoard = [...board]
+
+                  updatedBoard[
+                    selectedCell.row
+                  ][
+                    selectedCell.col
+                  ] = number
+
+                  setBoard(updatedBoard)
+
+                  handleChange(
+                    selectedCell.row,
+                    selectedCell.col,
+                    number
+                  )
+                }}
+                className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-blue-950 text-white text-2xl font-bold hover:scale-110 transition duration-300 shadow-xl"
+              >
+
+                {number}
+
+              </button>
+
+            )
+          )}
+
+        </div>
+
         {/* ACTIONS */}
 
         <div className="flex flex-wrap justify-center gap-6 mt-12">
@@ -443,6 +654,13 @@ function SudokuPage() {
             className="bg-blue-950 text-white px-8 py-4 rounded-full font-semibold hover:scale-105 transition duration-300 shadow-xl"
           >
             Check Solution
+          </button>
+
+          <button
+            onClick={giveHint}
+            className="bg-green-500 text-white px-8 py-4 rounded-full font-semibold hover:scale-105 transition duration-300 shadow-xl"
+          >
+            💡 Hint
           </button>
 
           <button
@@ -457,6 +675,8 @@ function SudokuPage() {
               setSelectedCell(null)
 
               setSeconds(0)
+
+              setMistakes(0)
             }}
             className="bg-yellow-400 text-black px-8 py-4 rounded-full font-semibold hover:scale-105 transition duration-300 shadow-xl"
           >
