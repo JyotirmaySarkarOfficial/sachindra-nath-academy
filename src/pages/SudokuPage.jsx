@@ -11,6 +11,10 @@ import sudokuLevels from '../data/sudokuLevels'
 
 function SudokuPage() {
 
+ const [hintsLeft, setHintsLeft] =
+  useState(3)
+
+
   /* =========================================
      AUDIO
   ========================================= */
@@ -74,6 +78,7 @@ function SudokuPage() {
     )
 
     setCompletedLevels(savedLevels)
+    
 
   }, [])
 
@@ -108,6 +113,7 @@ function SudokuPage() {
         setBestTime(null)
       }
     }
+    setHintsLeft(3)
 
   }, [currentLevel])
 
@@ -256,44 +262,44 @@ function SudokuPage() {
 
   const giveHint = () => {
 
-    const emptyCells = []
+    if (hintsLeft <= 0) {
 
-    board.forEach((row, rowIndex) => {
+      errorAudio.play()
 
-      row.forEach((cell, colIndex) => {
+      return
+    }
 
-        if (cell === '') {
+    if (!selectedCell) {
 
-          emptyCells.push({
-            row: rowIndex,
-            col: colIndex,
-          })
-        }
+      errorAudio.play()
 
-      })
+      return
+    }
 
-    })
+    const row = selectedCell.row
 
-    if (emptyCells.length === 0) return
+    const col = selectedCell.col
 
-    const randomCell =
-      emptyCells[
-        Math.floor(
-          Math.random() *
-            emptyCells.length
-        )
-      ]
+    const isFixed =
+      levelData.puzzle[row][col] !== ''
+
+    if (isFixed) {
+
+      errorAudio.play()
+
+      return
+    }
 
     const updatedBoard = [...board]
 
-    updatedBoard[randomCell.row][
-      randomCell.col
-    ] =
-      levelData.solution[randomCell.row][
-        randomCell.col
-      ]
+    updatedBoard[row][col] =
+      levelData.solution[row][col]
 
     setBoard(updatedBoard)
+
+    setHintsLeft((prev) => prev - 1)
+
+    clickAudio.play()
   }
 
   return (
@@ -456,6 +462,20 @@ function SudokuPage() {
             ❌ Mistakes:
             {' '}
             {mistakes}
+
+          </div>
+
+        </div>
+
+        {/* HINTS */}
+
+        <div className="flex justify-center mt-4">
+
+          <div className="bg-green-100 px-6 py-3 rounded-2xl text-lg font-bold text-green-700 shadow-xl">
+
+            💡 Hints Left:
+            {' '}
+            {hintsLeft}
 
           </div>
 
@@ -658,7 +678,12 @@ function SudokuPage() {
 
           <button
             onClick={giveHint}
-            className="bg-green-500 text-white px-8 py-4 rounded-full font-semibold hover:scale-105 transition duration-300 shadow-xl"
+            disabled={hintsLeft <= 0}
+            className={`px-8 py-4 rounded-full font-semibold transition duration-300 shadow-xl ${
+              hintsLeft > 0
+                ? 'bg-green-500 text-white hover:scale-105'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             💡 Hint
           </button>
